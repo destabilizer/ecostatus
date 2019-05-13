@@ -81,14 +81,14 @@ class DataHandler:
     def getCollection(self):
         return self.db.getCollection(self.source)
 
-    def _init_collection(self):
+    def _updateCollection(self):
         self.collection = self.db.updateCollection(self.source)
     
     def getSource(self):
         return self.source
 
     def enableWriting(self):
-        self._init_collection()
+        self._updateCollection()
         self.w = True
 
     def disableWriting(self):

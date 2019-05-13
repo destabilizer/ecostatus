@@ -22,7 +22,7 @@ class DBWrapper:
     def loadDB(self, db):
         self.db = db
         for cn in self.db.list_collection_names():
-            self.addCollection(collection_name)
+            self._updateCollection(cn)
         self._updateCollections()
     
     def create(self, name):
@@ -32,32 +32,27 @@ class DBWrapper:
     def create_with_timestamp(self):
         self.create(str(int(time.time())))
     
-    def createCollection(self, collection_name):
+    def _createCollection(self, collection_name):
         self.db.createCollection(collection_name)
-        w = DBCollectionWrapper(self.db[collection_name], collection_name)
-        self.collections.append((collection_name, w))
-        return w
+        self._addCollection(collection_name)
 
-    def addCollection(self, collection_name):
+    def _addCollection(self, collection_name):
         cw = DBCollectionWrapper(self.db[collection_name], collection_name)
         self.collections.append((collection_name, cw))
-        return cw
 
     def list_collection_names(self):
         return [c[0] for c in self.collections]
 
     def _updateCollection(self, collection_name):
         if collection_name not in self.list_collection_names():
-            return self.createCollection(collection_name)
-        else:
-            return self.addCollection(collection_name)
+            return self._createCollection(collection_name)
 
     def _updateCollections(self):
         for cn in self.collections_to_update:
             self._updateCollection(cn)
         self.collections_to_update = []
         
-    def updateCollection(self, collection_name):
+    def updateCollection(self, collection_name): # lazy function, can update without database
         if self.db:
             self._updateCollection(collection_name)
         else:
