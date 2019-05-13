@@ -86,16 +86,22 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b"POST with data")
                 print("Caught some data")
             elif jsondata["type"] == "control":
-                if jsondata["dbwriting"]:
+                if jsondata["action"] == "enable_db_writing":
                     EcoStatusHandler.server.datastack().enableWriting()
                     self._set_headers()
                     self.wfile.write(b"Writing enables")
                     print("Writing in DB enabled")
-                else:
+                elif jsondata["action"] == "disable_db_writing":
                     EcoStatusHandler.server.datastack().disableWriting()
                     self._set_headers()
                     self.wfile.write(b"Writing disabled")
                     print("Writing in DB disabled")
+                elif jsondata["action"] == "new_database_with_timestamp":
+                    ...
+                elif jsondata["action"] == "new_database":
+                    ...
+                else:
+                    raise IncorrectAction
         except KeyError:
             print("POST with bad json")
             self.send_response(422)
@@ -104,6 +110,9 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
             self.send_response(422) # Actually it means that source is not registered, http code ???
         except CollectionNotCreatedError:
             print("Collection was not created!")
+            self.send_response(422)
+        except IncorrectAction:
+            print("Action is incorrect")
             self.send_response(422)
         #except Exception as e:
         #    print("POST with unknown error")
@@ -114,4 +123,7 @@ class ServerError(Exception):
     pass
 
 class ServerInitializationError(ServerError):
+    pass
+
+class IncorrectAction(ServerError):
     pass
