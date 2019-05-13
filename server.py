@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 
 from datatools import DataHandlerStack, IncorrectSourceError
-
+from dbtools import CollectionNotCreatedError
 
 _is_server_initializated = False
 
@@ -102,6 +102,9 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
         except IncorrectSourceError:
             print("Source is not registered on server")
             self.send_response(422) # Actually it means that source is not registered, http code ???
+        except CollectionNotCreatedError:
+            print("Collection was not created!")
+            self.send_response(422)
         #except Exception as e:
         #    print("POST with unknown error")
         #    self.send_response(400)

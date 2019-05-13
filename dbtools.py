@@ -1,5 +1,5 @@
 #import pymongo
-
+import time
 
 class DBWrapper:
     _default_mongo_address = 'localhost'
@@ -17,14 +17,20 @@ class DBWrapper:
             self.port = DBWrapper._default_mongo_port
         else:
             self.port = port
+        self.collections_to_update = []
 
     def loadDB(self, db):
         self.db = db
         for cn in self.db.list_collection_names():
             self.addCollection(collection_name)
+        self._update_collections()
     
     def create(self, name):
         self.db = FakeDB() # TODO mongo initialization
+        self._update_collections()
+
+    def create_with_timestamp(self):
+        self.create(str(int(time.time())))
     
     def createCollection(self, collection_name):
         self.db.createCollection(collection_name)
@@ -40,11 +46,28 @@ class DBWrapper:
     def list_collection_names(self):
         return self.db.list_collection_names()
 
-    def updateCollection(self, collection_name):
+    def _updateCollection(self, collection_name):
         if collection_name not in self.list_collection_names():
             return self.createCollection(collection_name)
         else:
             return self.addCollection(collection_name)
+
+    def _updateCollections(self):
+        for cn in self.collections_to_update:
+            self._updateCollection(cn)
+        self.collections_to_update = []
+        
+    def updateCollection(self, collection_name):
+        if db:
+            self._updateCollection(collection_name)
+        else:
+            self.collections_to_update.append(collection_name)
+        
+    def getCollection(self, collection_name):
+        try:
+            return self.db[collection_name]
+        except KeyError:
+            raise CollectionNotCreatedError
 
     def lastData(self):
         return [cw.lastData() for cw in self.collections]
@@ -68,6 +91,9 @@ class DBCollectionWrapper:
     def lastData(self):
         return self.lastdata
 
+
+class CollectionNotCreatedError(Exception):
+    pass
 
 # This is for testing
 

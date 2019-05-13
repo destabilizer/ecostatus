@@ -3,8 +3,8 @@ from server import initserver
 def main():
     serv = initserver()
     serv.initDataStack()
-    serv.createDB()
     serv.datastack().newSource("test")
+    serv.database().create_with_timestamp()
     serv.serve_forever()
 
 

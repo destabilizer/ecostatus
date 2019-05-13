@@ -2,8 +2,6 @@
 Tools for handle different devices with different data
 '''
 
-import time
-
 from dbtools import DBWrapper
 from dataprocessing import postprocess
 
@@ -14,11 +12,10 @@ class DataHandlerStack:
         self.dhstack = []
         #self.dbpath = dbpath
         self.w = False
-        self.db = None
-
-    def createDB(self):
         self.db = DBWrapper()
-        self.db.create(str(int(time.time())))
+
+    #def createDB(self):
+    #    self.db.create(str(int(time.time())))
 
     def loadDB(self, db):
         self.db = db        
@@ -72,9 +69,12 @@ class DataHandlerStack:
 class DataHandler:
     def __init__ (self, db, sourcename):
         self.source = sourcename
-        self.collection = db.updateCollection(sourcename)
         self.lastdata = None
         self.w = False
+        self.db = db
+
+    def getCollection(self):
+        return self.db.getCollection(self.source)
 
     def getSource(self):
         return self.source
@@ -93,7 +93,7 @@ class DataHandler:
         self.lastdata = postdata
         i = -1
         if self.isWritable():
-            i = self.collection.insertData(postdata)
+            i = self.getCollection().insertData(postdata)
         return i
 
     def lastData(self):
