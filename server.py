@@ -91,7 +91,7 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
                 if jsondata["action"] == "enable_db_writing":
                     EcoStatusHandler.server.datastack().enableWriting()
                     self._set_headers()
-                    self.wfile.write(b"Writing enables")
+                    self.wfile.write(b"Writing enabled")
                     print("Writing in DB enabled")
                 elif jsondata["action"] == "disable_db_writing":
                     EcoStatusHandler.server.datastack().disableWriting()

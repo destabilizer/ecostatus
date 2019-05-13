@@ -79,7 +79,7 @@ class DataHandler:
         self.collection_initialized = False
 
     def getCollection(self):
-        return self.collection
+        return self.db.getCollection(self.source)
 
     def _init_collection(self):
         self.collection = self.db.updateCollection(self.source)

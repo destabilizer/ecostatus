@@ -35,16 +35,16 @@ class DBWrapper:
     def createCollection(self, collection_name):
         self.db.createCollection(collection_name)
         w = DBCollectionWrapper(self.db[collection_name], collection_name)
-        self.collections.append(w)
+        self.collections.append((collection_name, w))
         return w
 
     def addCollection(self, collection_name):
         cw = DBCollectionWrapper(self.db[collection_name], collection_name)
-        self.collections.append(cw)
+        self.collections.append((collection_name, cw))
         return cw
 
     def list_collection_names(self):
-        return self.db.list_collection_names()
+        return [c[0] for c in self.collections]
 
     def _updateCollection(self, collection_name):
         if collection_name not in self.list_collection_names():
@@ -58,19 +58,20 @@ class DBWrapper:
         self.collections_to_update = []
         
     def updateCollection(self, collection_name):
-        if db:
+        if self.db:
             self._updateCollection(collection_name)
         else:
             self.collections_to_update.append(collection_name)
         
     def getCollection(self, collection_name):
-        try:
-            return self.db[collection_name]
-        except KeyError:
+        for c in self.collections:
+            if c[0] == collection_name:
+                return c[1]
+        else:
             raise CollectionNotCreatedError
 
     def lastData(self):
-        return [cw.lastData() for cw in self.collections]
+        return [c[1].lastData() for c in self.collections]
 
     
 class DBCollectionWrapper:
