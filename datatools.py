@@ -82,15 +82,13 @@ class DataHandler:
         return self.collection
 
     def _init_collection(self):
-        self.collection = DBCollectionWrapper(self.db.getCollection(self.source))
-        self.collection_initialized = True
+        self.collection = self.db.updateCollection(self.source)
     
     def getSource(self):
         return self.source
 
     def enableWriting(self):
-        if not self.collection_initialized:
-            self._init_collection()
+        self._init_collection()
         self.w = True
 
     def disableWriting(self):
