@@ -23,11 +23,11 @@ class DBWrapper:
         self.db = db
         for cn in self.db.list_collection_names():
             self.addCollection(collection_name)
-        self._update_collections()
+        self._updateCollections()
     
     def create(self, name):
         self.db = FakeDB() # TODO mongo initialization
-        self._update_collections()
+        self._updateCollections()
 
     def create_with_timestamp(self):
         self.create(str(int(time.time())))
