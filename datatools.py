@@ -5,7 +5,6 @@ Tools for handle different devices with different data
 import time
 
 from dbtools import DBWrapper
-from jsontools import getsource
 from dataprocessing import postprocess
 
 
