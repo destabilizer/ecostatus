@@ -24,6 +24,9 @@ class DataHandlerStack:
     def database(self):
         return self.db
 
+    def registerSource(self):
+        ...
+
     def newSource(self, sourcename):
         self.sourcelist.append(sourcename)
         dh = DataHandler(self.db, sourcename)
@@ -72,14 +75,22 @@ class DataHandler:
         self.lastdata = None
         self.w = False
         self.db = db
+        self.collection = None
+        self.collection_initialized = False
 
     def getCollection(self):
-        return self.db.getCollection(self.source)
+        return self.collection
 
+    def _init_collection(self):
+        self.collection = DBCollectionWrapper(self.db.getCollection(self.source))
+        self.collection_initialized = True
+    
     def getSource(self):
         return self.source
 
     def enableWriting(self):
+        if not self.collection_initialized:
+            self._init_collection()
         self.w = True
 
     def disableWriting(self):

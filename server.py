@@ -68,6 +68,7 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"</body></html>")
 
     def do_POST(self):
+        print("POST POST POST")
         content_len = int(self.headers.get('Content-Length'))
         post_body = self.rfile.read(content_len)
         try:
@@ -78,6 +79,7 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
         except:
             print("POST with incorrect json")
             self.send_response(400)
+            self.wfile.write(b"Incorrect json")
             return
         try:
             if jsondata["type"] == "data":
@@ -97,9 +99,13 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b"Writing disabled")
                     print("Writing in DB disabled")
                 elif jsondata["action"] == "new_database_with_timestamp":
-                    ...
+                    EcoStatusHandler.server.database().create_with_timestamp()
                 elif jsondata["action"] == "new_database":
-                    ...
+                    dbname = jsondata["dbname"]
+                    EcoStatusHandler.server.database().create(dbname)
+                #elif jsondata["action"] == "register_new_source":
+                #    sourcename = jsondata["sourcename"]
+                #    EcoStatusHandler.server.datastack().registerSource(sourcename)
                 else:
                     raise IncorrectAction
         except KeyError:
@@ -114,6 +120,10 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
         except IncorrectAction:
             print("Action is incorrect")
             self.send_response(422)
+        #except SourceIsAlreadyRegisteredError:
+        #    print("Source is already registered")
+        #    self.send_response(200)
+        #    self.wfile.write(b"Source is already registered")
         #except Exception as e:
         #    print("POST with unknown error")
         #    self.send_response(400)
