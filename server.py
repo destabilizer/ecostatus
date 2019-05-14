@@ -10,7 +10,7 @@ from dbtools import MongoClientWrapper, CollectionNotCreatedError
 _is_server_initializated = False
 
 
-def initserver(port=8080, mongo_address="127.0.0.1", mongo_port="????"):
+def initserver(port=8080, mongo_address="127.0.0.1", mongo_port=27017):
     global _is_server_initializated
     if _is_server_initializated: raise ServerInitializationError
     _is_server_initializated = True
@@ -45,7 +45,9 @@ class EcoStatusServer:
         self.ds.loadDB(self.db)
         
     def create_db_with_timestamp(self):
-        self.create_db(str(int(time.time())))
+        ts = time.gmtime()
+        hts = time.strftime("ts%Y-%m-%d_%H:%M:%S", ts)
+        self.create_db(hts)
     
     def connectDataStack(self, dhs):
         self.ds = dhs
