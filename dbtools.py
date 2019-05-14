@@ -1,23 +1,33 @@
-#import pymongo
+from pymongo import MongoClient
 import time
 
+class MongoClientWrapper:
+    def __init__(self):
+        self.port = None
+        self.address = None
+
+    def connect(self, port, address):
+        self.port = port
+        self.address = address
+        self.client = MongoClient()
+
+    def create_db(self, name):
+        return DBWrapper(db=self.client[name])
+
+    def source_db(self):
+        db = DBWrapper(self.client["registered_devices"])
+        db.updateCollection("lattepanda1") # It's for testing
+        db.updateCollection("lattepanda2")
+        db.updateCollection("testclient")
+        return db
+        
+
 class DBWrapper:
-    _default_mongo_address = 'localhost'
-    _default_mongo_port = 27017
-    
-    def __init__(self, db=None, address='', port=0):
+    def __init__(self, db=None):
         self.db = db
         self.collections = []
-        if db: self.loadDB(db)
-        if not address:
-            self.address = DBWrapper._default_mongo_address
-        else:
-            self.address = address
-        if not port:
-            self.port = DBWrapper._default_mongo_port
-        else:
-            self.port = port
         self.collections_to_update = []
+        if db: self.loadDB(db)
 
     def loadDB(self, db):
         self.db = db
@@ -25,15 +35,8 @@ class DBWrapper:
             self._updateCollection(cn)
         self._updateCollections()
     
-    def create(self, name):
-        self.db = FakeDB() # TODO mongo initialization
-        self._updateCollections()
-
-    def create_with_timestamp(self):
-        self.create(str(int(time.time())))
-    
     def _createCollection(self, collection_name):
-        self.db.createCollection(collection_name)
+        self.db[collection_name]
         self._addCollection(collection_name)
 
     def _addCollection(self, collection_name):
@@ -82,6 +85,7 @@ class DBCollectionWrapper:
         #maybe some operations with jsondata
         self.lastdata = jsondata
         print("Inserting data into the database...")
+        print(self)
         return self.collection.insert_one(jsondata)
 
     def lastData(self):
@@ -110,4 +114,4 @@ class FakeDB:
     
 class FakeCollection:
     def insert_one(self, jsondata):
-        print(jsondata)
+        print("FakeCollection:", jsondata)

@@ -2,18 +2,21 @@
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import time
 
 from datatools import DataHandlerStack, IncorrectSourceError
-from dbtools import CollectionNotCreatedError
+from dbtools import MongoClientWrapper, CollectionNotCreatedError
 
 _is_server_initializated = False
 
 
-def initserver(port=8080):
+def initserver(port=8080, mongo_address="127.0.0.1", mongo_port="????"):
     global _is_server_initializated
     if _is_server_initializated: raise ServerInitializationError
     _is_server_initializated = True
     s = EcoStatusServer(port, EcoStatusHandler)
+    s.initMongoClient(mongo_address, mongo_port)
+    s.initDataStack()
     EcoStatusHandler.server = s
     return s
 
@@ -23,12 +26,26 @@ class EcoStatusServer:
         self.port = port
         self.handler_class = handler_class
         self.httpd = HTTPServer(('', self.port), self.handler_class)
+        self.ds = None
+        self.db = None
+        self.mongo_client = None
+
+    def initMongoClient(self, mongo_address, mongo_port):
+        self.mongo_client = MongoClientWrapper()
+        self.mongo_client.connect(mongo_address, mongo_port)
 
     def initDataStack(self):
+        if not self.mongo_client:
+            raise ServerInitializationError
         self.ds = DataHandlerStack()
+        self.ds.loadSourceDB(self.mongo_client.source_db())
 
-    def createDB(self):
-        self.datastack().createDB()
+    def create_db(self, name):
+        self.db = self.mongo_client.create_db(name)
+        self.ds.loadDB(self.db)
+        
+    def create_db_with_timestamp(self):
+        self.create_db(str(int(time.time())))
     
     def connectDataStack(self, dhs):
         self.ds = dhs
@@ -37,7 +54,7 @@ class EcoStatusServer:
         return self.ds
 
     def database(self):
-        return self.datastack().database()
+        return self.db
 
     def serve_forever(self):
         print('Starting http server...')
@@ -68,14 +85,11 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"</body></html>")
 
     def do_POST(self):
-        print("POST POST POST")
         content_len = int(self.headers.get('Content-Length'))
         post_body = self.rfile.read(content_len)
         try:
-            print(post_body)
-            print(post_body.decode("utf-8"))
+            print("POST:", post_body.decode("utf-8"))
             jsondata = json.loads(post_body.decode("utf-8"))
-            print(jsondata)
         except:
             print("POST with incorrect json")
             self.send_response(400)

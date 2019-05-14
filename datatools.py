@@ -2,7 +2,6 @@
 Tools for handle different devices with different data
 '''
 
-from dbtools import DBWrapper
 from dataprocessing import postprocess
 
 
@@ -12,25 +11,39 @@ class DataHandlerStack:
         self.dhstack = []
         #self.dbpath = dbpath
         self.w = False
-        self.db = DBWrapper()
+        self.db = None
+        self.sourcedb = None
 
     #def createDB(self):
     #    self.db.create(str(int(time.time())))
 
+    def loadSourceDB(self, db):
+        self.sourcedb = db
+        for cn in self.sourcedb.list_collection_names():
+            if cn not in self.sourcelist:
+                self.sourcelist.append(cn)
+        
     def loadDB(self, db):
-        self.db = db        
-        #TODO check that it has correct collections
+        self.db = db
+        for s in self.sourcelist:
+            self.db.updateCollection(s)
+            dh = DataHandler(db, s)
+            self.dhstack.append(dh)
 
     def database(self):
         return self.db
 
-    def registerSource(self):
-        ...
-
-    def newSource(self, sourcename):
+    def registerSource(self, sourcename):
+        if sourcename in self.sourcelist:
+            print("Source is already registered")
+        else:
+            self._newSource(sourcename)
+        
+    def _newSource(self, sourcename):
         self.sourcelist.append(sourcename)
         dh = DataHandler(self.db, sourcename)
         self.dhstack.append(dh)
+        self.sourcedb.updateCollection(sourcename)
 
     def appendDataHandler(self, dh):
         dhs = dh.getSource()
@@ -49,7 +62,7 @@ class DataHandlerStack:
             i = self.sourcelist.index(s)
         except:
             raise IncorrectSourceError
-        print("DataStack get the data with source", s)
+        print("DataStack get the data from source", s)
         return self.dhstack[i].insertData(jsondata)
 
     def lastData(self):
@@ -76,13 +89,12 @@ class DataHandler:
         self.w = False
         self.db = db
         self.collection = None
-        self.collection_initialized = False
 
     def getCollection(self):
         return self.db.getCollection(self.source)
 
     def _updateCollection(self):
-        self.collection = self.db.updateCollection(self.source)
+        self.db.updateCollection(self.source)
     
     def getSource(self):
         return self.source
