@@ -44,6 +44,7 @@ class DataHandlerStack:
         dh = DataHandler(self.db, sourcename)
         self.dhstack.append(dh)
         self.sourcedb.updateCollection(sourcename)
+        self.sourcedb.getCollection(sourcename).insertData({"source": sourcename})
 
     def appendDataHandler(self, dh):
         dhs = dh.getSource()

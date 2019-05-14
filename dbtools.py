@@ -16,9 +16,9 @@ class MongoClientWrapper:
 
     def source_db(self):
         db = DBWrapper(self.client["registered_devices"])
-        db.updateCollection("lattepanda1") # It's for testing
-        db.updateCollection("lattepanda2")
-        db.updateCollection("testclient")
+        #db.updateCollection("lattepanda1") # It's for testing
+        #db.updateCollection("lattepanda2")
+        #db.updateCollection("testclient")
         return db
         
 
@@ -84,8 +84,7 @@ class DBCollectionWrapper:
     def insertData(self, jsondata):
         #maybe some operations with jsondata
         self.lastdata = jsondata
-        print("Inserting data into the database...")
-        print(self)
+        print("Inserting data into the collection", self.collection_name)
         return self.collection.insert_one(jsondata)
 
     def lastData(self):

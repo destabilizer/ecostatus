@@ -114,12 +114,15 @@ class EcoStatusHandler(BaseHTTPRequestHandler):
                     print("Writing in DB disabled")
                 elif jsondata["action"] == "new_database_with_timestamp":
                     EcoStatusHandler.server.database().create_with_timestamp()
+                    self._set_headers()
                 elif jsondata["action"] == "new_database":
                     dbname = jsondata["dbname"]
                     EcoStatusHandler.server.database().create(dbname)
-                #elif jsondata["action"] == "register_new_source":
-                #    sourcename = jsondata["sourcename"]
-                #    EcoStatusHandler.server.datastack().registerSource(sourcename)
+                    self._set_headers()
+                elif jsondata["action"] == "register_source":
+                    source = jsondata["source"]
+                    EcoStatusHandler.server.datastack().registerSource(source)
+                    self._set_headers()
                 else:
                     raise IncorrectAction
         except KeyError:
