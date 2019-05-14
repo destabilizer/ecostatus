@@ -111,11 +111,11 @@ class DataHandler:
         return self.w
     
     def insertData(self, jsondata):
-        postdata = postprocess(jsondata)
-        self.lastdata = postdata
+        postprocess(jsondata)
+        self.lastdata = jsondata
         i = -1
         if self.isWritable():
-            i = self.getCollection().insertData(postdata)
+            i = self.getCollection().insertData(jsondata)
         return i
 
     def lastData(self):
