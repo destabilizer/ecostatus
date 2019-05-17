@@ -8,6 +8,7 @@ from dataprocessing import postprocess
 class DataHandlerStack:
     def __init__(self):
         self.sourcelist = []
+        self.visible = []
         self.dhstack = []
         #self.dbpath = dbpath
         self.w = False
@@ -19,32 +20,58 @@ class DataHandlerStack:
 
     def loadSourceDB(self, db):
         self.sourcedb = db
-        for cn in self.sourcedb.list_collection_names():
-            if cn not in self.sourcelist:
-                self.sourcelist.append(cn)
+        for cn in self.sourcedb.db.list_collection_names():
+            self.load_source(cn)
         
     def loadDB(self, db):
         self.db = db
-        for s in self.sourcelist:
-            self.db.updateCollection(s)
-            dh = DataHandler(db, s)
-            self.dhstack.append(dh)
+        for dh in self.dhstack:
+            dh.db = self.db
+            dh._updateCollection()
 
+    def source_list(self):
+        return self.sourcelist
+
+    def visible_sources(self):
+        return self.visible
+    
     def database(self):
         return self.db
 
-    def registerSource(self, sourcename):
-        if sourcename in self.sourcelist:
-            print("Source is already registered")
+    def registerSource(self, jsondata):
+        sn = jsondata["source"]
+        col = self.sourcedb.db[sn]
+        if sn in self.sourcelist:
+            col.delete_one({})
         else:
-            self._newSource(sourcename)
-        
-    def _newSource(self, sourcename):
-        self.sourcelist.append(sourcename)
-        dh = DataHandler(self.db, sourcename)
-        self.dhstack.append(dh)
-        self.sourcedb.updateCollection(sourcename)
-        self.sourcedb.getCollection(sourcename).insertData({"source": sourcename})
+            self.sourcelist.append(sn)
+            dh = DataHandler(self.db, sn)
+            self.dhstack.append(dh)
+        col.insert_one(jsondata)
+        jsondata.pop("_id")
+        if jsondata["visible"]:
+            self.visible.append(sn)
+        else:
+            if sn in visible:
+                self.visible.pop(sn)
+        return jsondata
+
+    def load_source(self, sourcename):
+        if not sourcename in self.sourcelist:
+            self.sourcelist.append(sourcename)
+        sourcecol = self.sourcedb.db[sourcename]
+        source_param = sourcecol.find_one()
+        if source_param["visible"]:
+            if not sourcename in self.visible:
+                self.visible.append(sourcename)
+
+    #def _newSource(self, jsondata):
+    #    sn = jsondata["source"]
+    #    self.sourcelist.append(sn)
+    #    dh = DataHandler(self.db, sn)
+    #    self.dhstack.append(dh)
+    #    self.sourcedb.updateCollection(sn)
+    #    self.sourcedb.getCollection(sourcename).insertData(jsondata)
 
     def appendDataHandler(self, dh):
         dhs = dh.getSource()
@@ -67,17 +94,25 @@ class DataHandlerStack:
         return self.dhstack[i].insertData(jsondata)
 
     def lastData(self):
-        return [dh.lastData() for dh in self.dhstack]
+        return {dh.source:dh.lastData() for dh in self.dhstack}
 
     def enableWriting(self):
-        for dh in self.dhstack:
-            dh.enableWriting()
-        self.w = True
+        if self.w == True:
+            return False
+        else:
+            for dh in self.dhstack:
+                dh.enableWriting()
+            self.w = True
+            return True
 
     def disableWriting(self):
-        for dh in self.dhstack:
-            dh.disableWriting()
-        self.w = False
+        if self.w == False:
+            return False
+        else:
+            for dh in self.dhstack:
+                dh.disableWriting()
+            self.w = False
+            return True
 
     def isWritable(self):
         return self.w
@@ -113,10 +148,9 @@ class DataHandler:
     def insertData(self, jsondata):
         postprocess(jsondata)
         self.lastdata = jsondata
-        i = -1
+        print(self.lastdata)
         if self.isWritable():
-            i = self.getCollection().insertData(jsondata)
-        return i
+            return self.getCollection().insertData(jsondata)
 
     def lastData(self):
         return self.lastdata

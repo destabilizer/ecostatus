@@ -34,6 +34,9 @@ class DBWrapper:
         for cn in self.db.list_collection_names():
             self._updateCollection(cn)
         self._updateCollections()
+
+    def getName(self):
+        return self.db.name
     
     def _createCollection(self, collection_name):
         self.db[collection_name]
@@ -69,7 +72,7 @@ class DBWrapper:
             raise CollectionNotCreatedError
 
     def lastData(self):
-        return [c[1].lastData() for c in self.collections]
+        return {c[0]:c[1].lastData() for c in self.collections}
 
     
 class DBCollectionWrapper:
@@ -85,7 +88,10 @@ class DBCollectionWrapper:
         #maybe some operations with jsondata
         self.lastdata = jsondata
         print("Inserting data into the collection", self.collection_name)
-        return self.collection.insert_one(jsondata)
+        i = self.collection.insert_one(jsondata)
+        sid = str(i.inserted_id)
+        jsondata["_id"] = sid
+        return sid
 
     def lastData(self):
         return self.lastdata

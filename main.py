@@ -2,8 +2,7 @@ from server import initserver
 
 def main():
     serv = initserver()
-    serv.create_db_with_timestamp()
-    serv.serve_forever()
+    serv.run()
 
 if __name__ == "__main__":
     main()
