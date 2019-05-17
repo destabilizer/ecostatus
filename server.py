@@ -1,31 +1,35 @@
 #!/usr/bin/python
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
+#from http.server import BaseHTTPRequestHandler, HTTPServer
+
+from flask import Flask
+from flask.json import jsonify
+
 import json
 import time
 
 from datatools import DataHandlerStack, IncorrectSourceError
 from dbtools import MongoClientWrapper, CollectionNotCreatedError
 
-_is_server_initializated = False
+
+app = Flask("EcoStatus")
+server = None
 
 
 def initserver(port=8080, mongo_address="127.0.0.1", mongo_port=27017):
-    global _is_server_initializated
-    if _is_server_initializated: raise ServerInitializationError
-    _is_server_initializated = True
-    s = EcoStatusServer(port, EcoStatusHandler)
-    s.initMongoClient(mongo_address, mongo_port)
-    s.initDataStack()
-    EcoStatusHandler.server = s
-    return s
+    global server
+    if server: raise ServerInitializationError
+    server = EcoStatusServer(port, EcoStatusHandler)
+    server.initMongoClient(mongo_address, mongo_port)
+    server.initDataStack()
+    return server
 
 
 class EcoStatusServer:
     def __init__(self, port, handler_class):
         self.port = port
-        self.handler_class = handler_class
-        self.httpd = HTTPServer(('', self.port), self.handler_class)
+        #self.handler_class = handler_class
+        #self.httpd = HTTPServer(('', self.port), self.handler_class)
         self.ds = None
         self.db = None
         self.mongo_client = None
@@ -43,11 +47,12 @@ class EcoStatusServer:
     def create_db(self, name):
         self.db = self.mongo_client.create_db(name)
         self.ds.loadDB(self.db)
+        return name
         
     def create_db_with_timestamp(self):
         ts = time.gmtime()
         hts = time.strftime("ts%Y-%m-%d_%H:%M:%S", ts)
-        self.create_db(hts)
+        return self.create_db(hts)
     
     def connectDataStack(self, dhs):
         self.ds = dhs
@@ -55,104 +60,129 @@ class EcoStatusServer:
     def datastack(self):
         return self.ds
 
+    def register_device(self, source):
+        self.datastack().registerSource(source)
+
     def database(self):
         return self.db
 
-    def serve_forever(self):
-        print('Starting http server...')
-        self.httpd.serve_forever()
+    def enable_db_writing(self):
+        self.datastack().enableWriting()
+
+    def disable_db_writing(self):
+        self.datastack().disableWriting()
+
+    def run(self):
+        app.run(port=self.port)
+
+    def get_data(self, jsondata):
+        self.datastack().insertData(jsondata)
+
+    def last_data(self):
+        ld = dict()
+        ld["current"] = self.datastack().lastdata()
+        ld["db"] = self.database().lastdata()
+        return ld
+
+    #def serve_forever(self):
+    #    print('Starting http server...')
+    #    self.httpd.serve_forever()
         
-        
-class EcoStatusHandler(BaseHTTPRequestHandler):
 
-    def _set_headers(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
+## API part
 
-    def do_HEAD(self):
-        self._set_headers()
-    
-    def do_GET(self):
-        self._set_headers()
-        dsld = EcoStatusHandler.server.datastack().lastData()
-        dbld = EcoStatusHandler.server.database().lastData()
-        self.wfile.write(b"<html><body>")
-        self.wfile.write(b"<p>")
-        self.wfile.write(bytes(str(dsld), "utf-8"))
-        self.wfile.write(b"</p>")
-        self.wfile.write(b"<p>")
-        self.wfile.write(bytes(str(dbld), "utf-8"))
-        self.wfile.write(b"</p>")
-        self.wfile.write(b"</body></html>")
-
-    def do_POST(self):
-        content_len = int(self.headers.get('Content-Length'))
-        post_body = self.rfile.read(content_len)
+@app.route('/api/data', methods=['GET', 'POST'])
+def api_data():
+    if request.method == 'POST':
         try:
-            print("POST:", post_body.decode("utf-8"))
-            jsondata = json.loads(post_body.decode("utf-8"))
-        except:
-            print("POST with incorrect json")
-            self.send_response(400)
-            self.wfile.write(b"Incorrect json")
-            return
-        try:
-            if jsondata["type"] == "data":
-                EcoStatusHandler.server.datastack().insertData(jsondata)
-                self._set_headers()
-                self.wfile.write(b"POST with data")
-                print("Caught some data")
-            elif jsondata["type"] == "control":
-                if jsondata["action"] == "enable_db_writing":
-                    EcoStatusHandler.server.datastack().enableWriting()
-                    self._set_headers()
-                    self.wfile.write(b"Writing enabled")
-                    print("Writing in DB enabled")
-                elif jsondata["action"] == "disable_db_writing":
-                    EcoStatusHandler.server.datastack().disableWriting()
-                    self._set_headers()
-                    self.wfile.write(b"Writing disabled")
-                    print("Writing in DB disabled")
-                elif jsondata["action"] == "new_database_with_timestamp":
-                    EcoStatusHandler.server.database().create_with_timestamp()
-                    self._set_headers()
-                elif jsondata["action"] == "new_database":
-                    dbname = jsondata["dbname"]
-                    EcoStatusHandler.server.database().create(dbname)
-                    self._set_headers()
-                elif jsondata["action"] == "register_source":
-                    source = jsondata["source"]
-                    EcoStatusHandler.server.datastack().registerSource(source)
-                    self._set_headers()
-                else:
-                    raise IncorrectAction
+            jsondata = request.get_json(force=True, silent=True, cache=False)
+            source = jsondata["source"]
+            server.get_data(jsondata)
         except KeyError:
-            print("POST with bad json")
-            self.send_response(422)
+            raise WronJson("Wrong data json")
         except IncorrectSourceError:
-            print("Source is not registered on server")
-            self.send_response(422) # Actually it means that source is not registered, http code ???
-        except CollectionNotCreatedError:
-            print("Collection was not created!")
-            self.send_response(422)
+            raise IncorrectSource("Source " + source + "does not exist!")
+    elif request.method == "GET":
+        jsondata = server.last_data()
+        return jsonify(jsondata)
+
+@app.route('/api/control', method=['GET', 'POST'])
+def api_control():
+    if request.method == 'POST':
+        jsonreq = request.get_json(force=True, silent=True, cache=False)
+        try:
+            action = jsonreq["action"]
+            if action == "enable_db_writing":
+                server.enable_db_writing()
+                return "DB writing enabled"
+            elif action == "disable_db_writing":
+                server.disable_db_writing()
+                return "DB writing disabled"
+            elif action == "new_database_with_timestamp":
+                name = server.create_db_with_timestamp()
+                return "Created database " + name
+            elif action == "new_database":
+                name = jsondata["database_name"]
+                server.create_db(name)
+                return "Created database " + name
+            elif action == "register_device":
+                source = jsondata["source"]
+                r = server.register_device(source)
+                if r == 0:
+                    return "Device is already registered"
+                elif r == 1:
+                    return "Registered device " + source
+            else:
+                raise IncorrectAction("Action " + action + "does not exist!") 
+        except KeyError:
+            raise WrongJson("Wrong control json")
         except IncorrectAction:
             print("Action is incorrect")
             self.send_response(422)
-        #except SourceIsAlreadyRegisteredError:
-        #    print("Source is already registered")
-        #    self.send_response(200)
-        #    self.wfile.write(b"Source is already registered")
-        #except Exception as e:
-        #    print("POST with unknown error")
-        #    self.send_response(400)
+    elif request.method == "GET":
+        cs = server.control_status()
+        return jsonjify(cs)
+    
+## Pages
+    
+@app.route('/')
+def index():
+    pass
 
+@app.route('/control')
+def control_panel():
+    pass
+
+## Error handler
+@app.errorhandler(ServerError)
+def handle_server_error(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+
+class ServerInitializationError(Exception):
+    pass
 
 class ServerError(Exception):
-    pass
+    status_code=400
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
 
-class ServerInitializationError(ServerError):
-    pass
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
 
+class WrongJson(ServerError):
+    status_code=422
+    
 class IncorrectAction(ServerError):
-    pass
+    status_code=422
+
+class IncorrectSource(ServerError, IncorrectSourceError):
+    status_code=422
