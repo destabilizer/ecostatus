@@ -10,6 +10,8 @@ import time
 
 from datatools import DataHandlerStack, IncorrectSourceError
 from dbtools import MongoClientWrapper, CollectionNotCreatedError
+import visualization
+import control
 
 from pymongo.errors import ServerSelectionTimeoutError
 
@@ -36,6 +38,9 @@ class EcoStatusServer:
         self.mongo_client = None
         self.mongo_client_initialized = False
         self.db_created = False
+        self.datatypes = []
+        self._update_datatypes = True
+        self.vispage = ""
 
     def addPort(self, port):
         self.port = port
@@ -114,8 +119,23 @@ class EcoStatusServer:
         app.run(port=self.port)
 
     def get_data(self, jsondata):
+        if self._update_datatypes:
+            self.update_datatypes(jsondata)
+            self._update_datatypes = False
         return self.datastack().insertData(jsondata)
 
+    def set_update_datatypes(self):
+        self._update_datatypes = True
+
+    def update_datatypes(self, jsondata):
+        print("Updating datatypes!")
+        self.datatypes = list()
+        for dt, v in jsondata.items():
+            if type(v) == float:
+                print(dt)
+                self.datatypes.append(dt)
+        self.generate_visualization_page()
+        
     def last_data(self):
         ld = dict()
         ld["current"] = self.datastack().lastData()
@@ -126,9 +146,21 @@ class EcoStatusServer:
         cs = dict()
         cs["is_db_writing_enabled"] = self.datastack().isWritable()
         cs["current_database"] = self.database().getName()
-        cs["regisitered_devices"] = self.datastack().source_list()
+        cs["registered_devices"] = self.datastack().source_list()
         cs["visible_devices"] = self.datastack().visible_sources()
         return cs
+
+    def init_datatypes(self, datatypes):
+        self.datatypes = datatypes
+
+    def generate_visualization_page(self):
+        self.vispage = visualization.generate_page(self.datatypes)
+
+    def visualization_page(self):
+        return self.vispage
+
+    def control_page(self):
+        return control.generate_page(self.control_status())
 
     #def serve_forever(self):
     #    print('Starting http server...')
@@ -193,16 +225,16 @@ def api_control():
 @app.route('/', methods=['GET', 'POST'])
 def root():
     if request.method == 'POST':
-        api_data()
+        return api_data()
     elif request.method == 'GET':
-        index()
+        return index()
 
 def index():
-    return str()
+    return server.visualization_page()
 
 @app.route('/control')
 def control_panel():
-    pass
+    return server.control_page()
 
 
 ## Error block

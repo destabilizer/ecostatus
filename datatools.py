@@ -59,6 +59,8 @@ class DataHandlerStack:
     def load_source(self, sourcename):
         if not sourcename in self.sourcelist:
             self.sourcelist.append(sourcename)
+            dh = DataHandler(self.db, sourcename)
+            self.dhstack.append(dh)
         sourcecol = self.sourcedb.db[sourcename]
         source_param = sourcecol.find_one()
         if source_param["visible"]:
