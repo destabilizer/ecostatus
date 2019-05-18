@@ -116,7 +116,7 @@ class EcoStatusServer:
     def run(self):
         if not self.port:
             raise ServerIsNotFullyInitializedError("Set up server port")
-        app.run(port=self.port)
+        app.run(host='0.0.0.0', port=self.port)
 
     def get_data(self, jsondata):
         if self._update_datatypes:
