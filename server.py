@@ -76,7 +76,7 @@ class EcoStatusServer:
         
     def create_db_with_timestamp(self):
         ts = time.gmtime()
-        hts = time.strftime("ts%Y-%m-%d_%H:%M:%S", ts)
+        hts = time.strftime("ts%Y-%m-%d_%H-%M-%S", ts)
         return self.create_db(hts)
 
     def connectDataStack(self, dhs):
