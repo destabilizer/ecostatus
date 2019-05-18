@@ -200,13 +200,13 @@ def action_disable_db_writing():
     r = server.disable_db_writing()
     return jsonify({"changed": r})
 
-@app.route('api/control/new_database_with_timestamp', methods=['GET', 'POST'])
-def action_new_database_with_timestamp:
+@app.route('/api/control/new_database_with_timestamp', methods=['GET', 'POST'])
+def action_new_database_with_timestamp():
     name = server.create_db_with_timestamp()
     return jsonify({"database_name": name})
 
 @app.route('/api/control/new_database', methods=['POST'])
-def action_new_database:
+def action_new_database():
     try:
         name = request.get_json()["database_name"]
     except KeyError:
@@ -215,7 +215,7 @@ def action_new_database:
     return jsonify({"database_name": name})
 
 @app.route('/api/control/register_device', methods=['POST'])
-def action_register_device:
+def action_register_device():
     jsondata = request.get_json().copy()
     r = server.register_device(jsondata)
     return jsonify(r)
