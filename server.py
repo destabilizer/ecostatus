@@ -147,6 +147,7 @@ class EcoStatusServer:
         cs["current_database"] = self.database().getName()
         cs["registered_devices"] = self.datastack().source_list()
         cs["visible_devices"] = self.datastack().visible_sources()
+        cs["datatypes"] = self.datatypes
         return cs
 
     def init_datatypes(self, datatypes):
