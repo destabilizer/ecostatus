@@ -63,9 +63,12 @@ class DataHandlerStack:
             self.dhstack.append(dh)
         sourcecol = self.sourcedb.db[sourcename]
         source_param = sourcecol.find_one()
-        if source_param["visible"]:
-            if not sourcename in self.visible:
-                self.visible.append(sourcename)
+        try:
+            if source_param["visible"]:
+                if not sourcename in self.visible:
+                    self.visible.append(sourcename)
+        except KeyError:
+            pass
 
     #def _newSource(self, jsondata):
     #    sn = jsondata["source"]
