@@ -134,7 +134,6 @@ class EcoStatusServer:
             if type(v) == float:
                 print(dt)
                 self.datatypes.append(dt)
-        self.generate_visualization_page()
         
     def last_data(self):
         ld = dict()
@@ -153,11 +152,8 @@ class EcoStatusServer:
     def init_datatypes(self, datatypes):
         self.datatypes = datatypes
 
-    def generate_visualization_page(self):
-        self.vispage = visualization.generate_page(self.datatypes)
-
     def visualization_page(self):
-        return self.vispage
+        return visualization.generate_page(self.datatypes, self.last_data(), self.datastack().source_list())
 
     def control_page(self):
         return control.generate_page(self.control_status())
