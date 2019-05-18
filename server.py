@@ -39,7 +39,7 @@ class EcoStatusServer:
 
     def addPort(self, port):
         self.port = port
-
+  
     def addMongo(self, address, port):
         self.mongo_address = address
         self.mongo_port = port
@@ -190,9 +190,15 @@ def api_control():
     
 ## Pages
     
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
+def root():
+    if request.method == 'POST':
+        api_data()
+    elif request.method == 'GET':
+        index()
+
 def index():
-    pass
+    return str()
 
 @app.route('/control')
 def control_panel():
