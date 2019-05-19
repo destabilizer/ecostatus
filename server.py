@@ -147,6 +147,7 @@ class EcoStatusServer:
         cs["current_database"] = self.database().getName()
         cs["registered_devices"] = self.datastack().source_list()
         cs["visible_devices"] = self.datastack().visible_sources()
+        cs["datatypes"] = self.datatypes
         return cs
 
     def init_datatypes(self, datatypes):
@@ -181,41 +182,42 @@ def api_data():
         jsondata = server.last_data()
         return jsonify(jsondata)
 
-@app.route('/api/control', methods=['GET', 'POST'])
+@app.route('/api/control', methods=['GET'])
 def api_control():
-    if request.method == 'POST':
-        jsonreq = request.get_json(force=True, silent=True, cache=False)
-        try:
-            action = jsonreq["action"]
-            if action == "enable_db_writing":
-                r = server.enable_db_writing()
-                return jsonify({"changed": r})
-            elif action == "disable_db_writing":
-                r = server.disable_db_writing()
-                return jsonify({"changed": r})
-            elif action == "new_database_with_timestamp":
-                name = server.create_db_with_timestamp()
-                return jsonify({"database_name": name})
-            elif action == "new_database":
-                name = jsonreq["database_name"]
-                server.create_db(name)
-                return jsonify({"database_name": name})
-            elif action == "register_device":
-                jsondata = jsonreq.copy()
-                jsondata.pop("action")
-                r = server.register_device(jsondata)
-                return jsonify(r)
-            else:
-                raise IncorrectAction("Action " + action + "does not exist!") 
-        except KeyError:
-            raise WrongJson("Wrong control json")
-        except IncorrectAction:
-            print("Action is incorrect")
-            self.send_response(422)
-    elif request.method == "GET":
-        cs = server.control_status()
-        return jsonify(cs)
-    
+    cs = server.control_status()
+    return jsonify(cs)
+
+@app.route('/api/control/enable_db_writing', methods=['GET', 'POST'])
+def action_enable_db_writing():
+    r = server.enable_db_writing()
+    return jsonify({"changed": r})
+
+@app.route('/api/control/disable_db_writing', methods=['GET', 'POST'])
+def action_disable_db_writing():
+    r = server.disable_db_writing()
+    return jsonify({"changed": r})
+
+@app.route('/api/control/new_database_with_timestamp', methods=['GET', 'POST'])
+def action_new_database_with_timestamp():
+    name = server.create_db_with_timestamp()
+    return jsonify({"database_name": name})
+
+@app.route('/api/control/new_database', methods=['POST'])
+def action_new_database():
+    try:
+        name = request.get_json()["database_name"]
+    except KeyError:
+        raise WrongJson("Json doesnt contain field 'database_name'")
+    server.create_db(name)
+    return jsonify({"database_name": name})
+
+@app.route('/api/control/register_device', methods=['POST'])
+def action_register_device():
+    jsondata = request.get_json().copy()
+    r = server.register_device(jsondata)
+    return jsonify(r)
+
+
 ## Pages
     
 @app.route('/', methods=['GET', 'POST'])

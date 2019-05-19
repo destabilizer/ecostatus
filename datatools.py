@@ -52,8 +52,8 @@ class DataHandlerStack:
         if jsondata["visible"]:
             self.visible.append(sn)
         else:
-            if sn in visible:
-                self.visible.pop(sn)
+            if sn in self.visible:
+                self.visible.remove(sn)
         return jsondata
 
     def load_source(self, sourcename):
