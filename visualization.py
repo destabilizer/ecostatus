@@ -7,6 +7,7 @@ def generate_page(datatypes, lastdata, devices):
             with tag('title'):
                 text("EcoStatus visualization")
         with tag('body'):
+            doc.asis('<script src="static/jquery.js"></script>')
             doc.asis('<script src="static/smoothie.js"></script>')
             doc.asis('<script src="static/visualization.js"></script>')
             with tag('p'):
