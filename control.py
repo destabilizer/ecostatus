@@ -29,7 +29,7 @@ def generate_page(control_status):
                 db_button = "Disable DB" if db_status else "Enable DB"
                 with tag('h4'): text(db_text)
                 with tag('form', method="get",
-                         action="/api/control/" + "disbable" if db_status else "enable" + "_db_writing"):
+                         action="/api/control/" + ("disable" if db_status else "enable") + "_db_writing"):
                     with tag('button', type="submit"): text(db_button)
                 with tag('h4'):
                     text('Current database: ')
