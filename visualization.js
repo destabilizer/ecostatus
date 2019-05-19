@@ -1,5 +1,5 @@
-var $ = require('jquery');
-var s = require('smoothie');
+// var $ = require('jquery');
+// var s = require('smoothie');
 
 var data = [];
 var datatypes = [];
@@ -25,7 +25,7 @@ $.getJSON('/api/control', function(jsondata){
 	    data.push(dat);
 	    //style
 	    var h = 360*(dev/devl);    // hue
-	    ds = {strokeStyle: 'hsl('+h+',1.0,0.5)', fillStyle'hsla('+h+',1.0,0.5,0.3)', lineWidth:3}
+	    ds = {strokeStyle: 'hsl('+h+',1.0,0.5)', fillStyle: 'hsla('+h+',1.0,0.5,0.3)', lineWidth: 3}
 	    //add data and style
 	    chart.addTimeSeries(dat, ds);
 	}
@@ -52,4 +52,4 @@ function update_data() {
     });
 }
 
-setInterval(update_data, delay);
+// setInterval(update_data, delay);
