@@ -172,6 +172,8 @@ def api_data():
         try:
             jsondata = request.get_json(force=True, silent=True, cache=False)
             source = jsondata["source"]
+            if source not in server.datastack().source_list():
+                server.register_device({"source": source, "visible": True})
             id = server.get_data(jsondata)
             return jsonify({"_id": id})
         except KeyError:
