@@ -144,7 +144,6 @@ class EcoStatusServer:
         for dev in ld['current']:
             devd = ld['current'][dev]
             if devd == None:
-                print('yay its none')
                 devd = ld['current'][dev] = dict()
                 devd['is_fresh'] = False
             elif (curtime - devd['arrived']) < self.penalty_interval:
