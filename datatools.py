@@ -50,7 +50,8 @@ class DataHandlerStack:
         col.insert_one(jsondata)
         jsondata.pop("_id")
         if jsondata["visible"]:
-            self.visible.append(sn)
+            if sn not in self.visible:
+                self.visible.append(sn)
         else:
             if sn in self.visible:
                 self.visible.remove(sn)
