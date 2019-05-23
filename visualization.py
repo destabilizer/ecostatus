@@ -5,6 +5,8 @@ def generate_page(datatypes, lastdata, devices):
     with tag('html'):
         with tag('head'):
             doc.asis('<link rel="stylesheet" type="text/css" href="static/style.css">')
+            doc.asis('<link rel="stylesheet" type="text/css" href="static/noty.css">')
+            doc.asis('<link rel="stylesheet" type="text/css" href="static/mint.css">')
             #doc.asis('<script src="static/jquery.js"></script>')
             #doc.asis('<script src="static/smoothie.js"></script>')
             doc.asis('<script src="static/visualization.js"></script>')

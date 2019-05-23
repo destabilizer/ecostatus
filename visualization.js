@@ -1,17 +1,23 @@
-var $ = require('./node_modules/jquery');
-var S = require('./node_modules/smoothie');
-var convert = require('./node_modules/color-convert')
-//var $n = require('./node_modules/notify')
+const $ = require('./node_modules/jquery');
+const S = require('./node_modules/smoothie');
+const convert = require('./node_modules/color-convert');
+const Noty = require('./node_modules/noty')
 
-var tsstack = [];
+const delay = 1000;
+const notify_delay = delay*4;
+
+var dev_notify_stack = [];
+var db_writing_notify = false;
+
+var ts_stack = [];
+
 var datatypes = [];
 var datl = 0;
 var charts = [];
 var chtl = 0;
+
 var devices = [];
 var devl = 0;
-var delay = 1000;
-
 var device_styles = [];
 
 function generate_style(n, total){
@@ -41,12 +47,22 @@ function colorify_device_names(){
     }
 }
 
+function generate_dev_notify_stack() {
+    for (var d = 0; d < devl; d++){
+        dev_notify_stack.push(false);
+    }
+}
+
 
 $.getJSON('/api/control', function(d){
     datatypes = d['datatypes'];
     devices = d['visible_devices'];
     datl = datatypes.length;
     devl = devices.length;
+    // notify
+    if (d['is_db_writing_enabled'] == false) { db_writing_notify = true }
+    generate_dev_notify_stack();
+    // styles
     generate_styles();
     colorify_device_names();
     for (var i = 0; i < datl; i++){
@@ -54,7 +70,7 @@ $.getJSON('/api/control', function(d){
 	    chart.streamTo(document.getElementById(datatypes[i]), delay);
 	    for (var d = 0; d < devl; d++){
 	        var ts = new S.TimeSeries();
-	        tsstack.push(ts);
+	        ts_stack.push(ts);
             //add time series and style
 	        chart.addTimeSeries(ts, device_styles[d]);
 	}
@@ -66,22 +82,56 @@ $.getJSON('/api/control', function(d){
 function update_data() {
     $.getJSON('/api/data', function(jd){
         var cd = jd['current'];
-        console.log(cd);
+        //console.log(cd);
         for (var c = 0; c < chtl; c++){
             var dt = datatypes[c];
-            chart = charts[c];	    
+            chart = charts[c];
             for (var d = 0; d < devl; d++){
                 var device = devices[d];
-                ts = tsstack[c*devl+d];
+                ts = ts_stack[c*devl+d];
                 var devdat = cd[device];
-                if (devdat == null){
-                    console.log('No data from device!!!') // here must be warning notification
-                } else {
+                if (devdat['is_fresh']){
                     ts.append(new Date().getTime(), devdat[dt]);
+                } else {
+                    dev_notify_stack[d] = true;
                 }
             }
         }
     });
 }
 
+function notify_no_data_from_device(devname){
+    n = new Noty({
+        type: 'warning',
+        layout: 'topRight',
+        text: 'No data from device <b>' + devname + '</b>'
+    });
+    n.setTimeout(notify_delay);
+    n.show()
+}
+
+function notify_db_is_not_writing(){
+    n = new Noty({
+        type: 'warning',
+        layout: 'topRight',
+        text: 'Data is <b>NOT</b> writing into the database'
+    });
+    n.setTimeout(notify_delay);
+    n.show();
+}
+
+function notify_daemon() {
+    for (var d = 0; d < devl; d++){
+        if (dev_notify_stack[d]){
+            notify_no_data_from_device(devices[d]);
+            dev_notify_stack[d] = false;
+        }
+    }
+    if (db_writing_notify) {
+        notify_db_is_not_writing();
+        db_writing_notify = false;
+    }
+}
+
 setInterval(update_data, delay);
+setInterval(notify_daemon, notify_delay)
