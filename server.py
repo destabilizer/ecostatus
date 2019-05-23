@@ -29,7 +29,7 @@ def initserver(port=8080, mongo_address="127.0.0.1", mongo_port=27017):
 
 
 class EcoStatusServer:
-    def __init__(self, port=None, mongo_address=None, mongo_port=None):
+    def __init__(self, port=None, mongo_address=None, mongo_port=None, penalty_interval=3):
         self.port = port
         self.mongo_address = mongo_address
         self.mongo_port = mongo_port
@@ -41,6 +41,7 @@ class EcoStatusServer:
         self.datatypes = []
         self._update_datatypes = True
         self.vispage = ""
+        self.penalty_interval = penalty_interval
 
     def addPort(self, port):
         self.port = port
@@ -122,6 +123,7 @@ class EcoStatusServer:
         if self._update_datatypes:
             self.update_datatypes(jsondata)
             self._update_datatypes = False
+        jsondata['arrived'] = int(time.time())
         return self.datastack().insertData(jsondata)
 
     def set_update_datatypes(self):
@@ -137,8 +139,19 @@ class EcoStatusServer:
         
     def last_data(self):
         ld = dict()
-        ld["current"] = self.datastack().lastData()
-        ld["db"] = self.database().lastData()
+        ld['current'] = self.datastack().lastData()
+        curtime = int(time.time())
+        for dev in ld['current']:
+            devd = ld['current'][dev]
+            if devd == None:
+                print('yay its none')
+                devd = ld['current'][dev] = dict()
+                devd['is_fresh'] = False
+            elif (curtime - devd['arrived']) < self.penalty_interval:
+                devd['is_fresh'] = True
+            else:
+                devd['is_fresh'] = False
+        ld['db'] = self.database().lastData()
         return ld
 
     def control_status(self):
