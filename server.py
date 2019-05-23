@@ -154,7 +154,8 @@ class EcoStatusServer:
         self.datatypes = datatypes
 
     def visualization_page(self):
-        return visualization.generate_page(self.datatypes, self.last_data(), self.datastack().source_list())
+        return visualization.generate_page(self.datatypes, self.last_data(),
+                                           self.datastack().visible_sources())
 
     def control_page(self):
         return control.generate_page(self.control_status())
